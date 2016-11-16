@@ -38,9 +38,10 @@ def center_crop(img, size): # requires (b,ch,w,h)
 def read_img(fl, params): # RGB: H,W,C
 	img = caffe.io.load_image(fl)
 	caffe.io.resize_image(img,(256,256))
+	img=np.transpose(img, (2,0,1))
 
 	if params==1:
-		img=img[np.newaxis,:,:,0] #keep only channel 0
+		img=img[0,np.newaxis] #keep only channel 0
 
 	#if >80% of the image is black, ditch.
 	ch1=img[:,:,0]
@@ -90,7 +91,7 @@ make_hdf5(val_files, 'hdf5/val_data.h5') # already 256x256
 with open('hdf5/train.txt','w') as f:
 	f.write('%s/hdf5/train_data.h5'%os.getcwd())
 with open('hdf5/test.txt','w') as f:
-	f.write('%s/hdf5/test_data.h5'%os.getcwd())
+	f.write('%s/hdf5/val_data.h5'%os.getcwd())
 
 
 raw_input('data creation successful')
