@@ -88,9 +88,9 @@ make_hdf5(train_files, 'hdf5/train_data.h5', (176,176))
 make_hdf5(val_files, 'hdf5/val_data.h5') # already 256x256
 
 with open('hdf5/train.txt','w') as f:
-	f.write('%s/train_data.h5'%os.getcwd())
+	f.write('%s/hdf5/train_data.h5'%os.getcwd())
 with open('hdf5/test.txt','w') as f:
-	f.write('%s/test_data.h5'%os.getcwd())
+	f.write('%s/hdf5/test_data.h5'%os.getcwd())
 
 
 raw_input('data creation successful')
