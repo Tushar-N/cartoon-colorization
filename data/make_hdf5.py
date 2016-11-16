@@ -2,14 +2,17 @@
 import cPickle as pickle
 import h5py
 import numpy as np
-import skimage.io
-import skimage.transform
 import glob
 from sklearn.utils import shuffle as sk_shuffle
 from joblib import Parallel, delayed
 import os.path
 from sklearn.cross_validation import train_test_split
-import os
+
+import os, sys
+base_dir='/'.join(os.getcwd().split('/')[0:-1])
+sys.path.append('%s/caffe-colorization/python'%base_dir)
+import caffe
+
 
 #------------------------------util------------------------------#
 def read_lines(flname):
@@ -32,24 +35,15 @@ def center_crop(img, size): # requires (b,ch,w,h)
 	return img[:, :, left:-right, top:-bot]	
 	
 
-def read_img(fl, params): #skimage gives you an RGB, cv2 gives BGR
-	img=skimage.io.imread(fl)
-	img=skimage.transform.resize(img, (256,256))
-
-	try:
-		img=np.rollaxis(img,2) #(3,256,256)
-		img=img[::-1,:,:] #convert RGB to BGR
-	except:
-		#shutil.copyfile(fl, 'failed/'+fl)
-		print 'fail', fl
-		return None
+def read_img(fl, params): # RGB: H,W,C
+	img = caffe.io.load_image(fl)
+	caffe.io.resize_image(img,(256,256))
 
 	if params==1:
-		img=img[0,np.newaxis] #keep only channel 0
-
+		img=img[np.newaxis,:,:,0] #keep only channel 0
 
 	#if >80% of the image is black, ditch.
-	ch1=img[0]
+	ch1=img[:,:,0]
 	if 1.0*np.sum(ch1[ch1<10])/(ch1.shape[0]*ch1.shape[1])>0.8:
 		return None
 
@@ -58,7 +52,6 @@ def read_img(fl, params): #skimage gives you an RGB, cv2 gives BGR
 #----------------------------------------------------------------#
 
 def make_hdf5(filenames, out_file, crop=None):
-
 
 	color_files=['raw/frames/%s'%f for f in filenames]
 	sketch_files=['raw/sketch/%s'%f for f in filenames]
@@ -100,7 +93,7 @@ with open('hdf5/test.txt','w') as f:
 	f.write('%s/test_data.h5'%os.getcwd())
 
 
-
+raw_input('data creation successful')
 
 
 
