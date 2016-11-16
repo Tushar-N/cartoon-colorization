@@ -48,7 +48,7 @@ def read_img(fl, params): # RGB: H,W,C
 	if 1.0*np.sum(ch1[ch1<10])/(ch1.shape[0]*ch1.shape[1])>0.8:
 		return None
 
-	return img
+	return img*255
 
 #----------------------------------------------------------------#
 
