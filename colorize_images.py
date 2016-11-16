@@ -17,7 +17,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--prototxt', default='nil')
 parser.add_argument('--caffemodel', default='nil')
-parser.add_argument('--sketch', default='data/raw/sketch/7_069.png')
+parser.add_argument('--sketch', default='data/raw/sketch/11_246.png')
 parser.add_argument('--save', default='output/colorized.png')
 opt = parser.parse_args()
 
@@ -27,7 +27,7 @@ plt.rcParams['figure.figsize'] = (12, 6)
 caffe.set_mode_gpu()
 caffe.set_device(0)
 
-
+# test line
 #net = caffe.Net('models/colorization_deploy_v2.prototxt', 'snapshot_iter_1171.caffemodel', caffe.TEST)
 net = caffe.Net(opt.prototxt, opt.caffemodel, caffe.TEST)
 
@@ -40,8 +40,7 @@ print 'Annealed-Mean Parameters populated'
 
 # load the original image
 img_rgb = caffe.io.load_image(opt.sketch)
-img_rgb=skimage.transform.resize(img_rgb, (128,128))
-
+img_rs = caffe.io.resize_image(img_rgb,(H_in,W_in)) # resize image to network input size
 
 img_lab = color.rgb2lab(img_rgb) # convert image to lab color space
 img_l = img_lab[:,:,0] # pull out L channel
