@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import skimage.transform
 
 import sys
-sys.path.append('/work/04340/tushar_n/DL2/colorization/caffe-colorization/python')
+import os
+sys.path.append('%s/caffe-colorization/python'%os.getcwd())
 
 import caffe
 import os
@@ -33,7 +34,7 @@ net = caffe.Net(opt.prototxt, opt.caffemodel, caffe.TEST)
 (H_in,W_in) = net.blobs['data_l'].data.shape[2:] # get input shape
 (H_out,W_out) = net.blobs['class8_ab'].data.shape[2:] # get output shape
 
-pts_in_hull = np.load('colorization/resources/pts_in_hull.npy') # load cluster centers
+pts_in_hull = np.load('resources/pts_in_hull.npy') # load cluster centers
 net.params['class8_ab'][0].data[:,:,0,0] = pts_in_hull.transpose((1,0)) # populate cluster centers as 1x1 convolution kernel
 print 'Annealed-Mean Parameters populated'
 
@@ -74,3 +75,6 @@ img_rgb_out = np.clip(color.lab2rgb(img_lab_out),0,1) # convert back to rgb
 plt.imshow(img_rgb_out);
 plt.axis('off');
 plt.savefig(opt.save)
+
+raw_input('Success')
+
