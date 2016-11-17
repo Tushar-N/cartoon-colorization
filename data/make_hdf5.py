@@ -40,16 +40,19 @@ def read_img(fl, params): # RGB: H,W,C
 	caffe.io.resize_image(img,(256,256))
 	img=np.transpose(img, (2,0,1))
 	img=img[::-1,:,:] #RGB to BGR
+	img=img*255
 
 	if params==1:
 		img=img[0,np.newaxis] #keep only channel 0
 
 	#if >80% of the image is black, ditch.
-	ch1=img[:,:,0]
-	if 1.0*np.sum(ch1[ch1<10])/(ch1.shape[0]*ch1.shape[1])>0.8:
-		return None
-
-	return img*255
+	#ch1=img[:,:,0]
+	#if 1.0*np.sum(ch1[ch1<10])/(ch1.shape[0]*ch1.shape[1])>0.8:
+	#	return None
+	
+	#Just load every image. We'll worry about this shit later
+	img=img.astype('uint8')
+	return img
 
 #----------------------------------------------------------------#
 
@@ -61,12 +64,13 @@ def make_hdf5(filenames, out_file, crop=None):
 	color_imgs=parallelize(read_img, color_files, verbose=10)
 	sketch_imgs=parallelize(read_img, sketch_files, verbose=10, params=1)
 
-	img_data=[(c,s) for c,s in zip(color_imgs, sketch_imgs) if (c is not None and s is not None)]
+	img_data=[(c,s,f) for c,s,f in zip(color_imgs, sketch_imgs, filenames) if (c is not None and s is not None)]
 
 	img_data=sk_shuffle(img_data)
-	color_imgs, sketch_imgs=zip(*img_data)
+	color_imgs, sketch_imgs, files=zip(*img_data)
 	color_imgs= np.asanyarray(color_imgs)
 	sketch_imgs= np.asanyarray(sketch_imgs)	
+	files=np.array(files)
 
 	# crop images if required
 	if crop is not None:
@@ -76,25 +80,26 @@ def make_hdf5(filenames, out_file, crop=None):
 	img_mean=np.mean(color_imgs, 0)
 
 	with h5py.File(out_file, 'w') as hf:
+		hf.create_dataset('img_files', data=files)
 		hf.create_dataset('col_sketch_data', data=color_imgs)
 		hf.create_dataset('bw_sketch_data', data=sketch_imgs)
-		hf.create_dataset('col_reference_data', data=color_imgs)		
+		hf.create_dataset('col_reference_data', data=color_imgs)
 		hf.create_dataset('img_mean', data=img_mean)
 
 #--------------------------------------------------------------------#
 
-img_files=[fl.split('/')[-1] for fl in glob.glob('raw/frames/*.png')]
-
-train_files, val_files, _, _ = train_test_split(img_files, [0]*len(img_files), test_size=0.2, random_state=42)
-make_hdf5(train_files, 'hdf5/train_data.h5', (176,176))
+#img_files=[fl.split('/')[-1] for fl in glob.glob('raw/frames/*.png')]
+#train_files, val_files, _, _ = train_test_split(img_files, [0]*len(img_files), test_size=0.2, random_state=42)
+with open('raw/ltrain.txt','r') as f:
+	train_files=f.read().strip().split('\n')
+	train_files=[l.split(' ')[0] for l in train_files]
+with open('raw/lval.txt','r') as f:
+	val_files=f.read().strip().split('\n')
+	val_files=[l.split(' ')[0] for l in val_files]
+	
+#make_hdf5(train_files, 'hdf5/train_data.h5', (176,176))
+make_hdf5(train_files, 'hdf5/train_data.h5')
 make_hdf5(val_files, 'hdf5/val_data.h5') # already 256x256
-
-with open('hdf5/train.txt','w') as f:
-	f.write('%s/hdf5/train_data.h5'%os.getcwd())
-with open('hdf5/test.txt','w') as f:
-	f.write('%s/hdf5/val_data.h5'%os.getcwd())
-
-
 raw_input('data creation successful')
 
 
