@@ -39,6 +39,7 @@ def read_img(fl, params): # RGB: H,W,C
 	img = caffe.io.load_image(fl)
 	caffe.io.resize_image(img,(256,256))
 	img=np.transpose(img, (2,0,1))
+	img=img[::-1,:,:] #RGB to BGR
 
 	if params==1:
 		img=img[0,np.newaxis] #keep only channel 0
