@@ -97,8 +97,8 @@ with open('raw/lval.txt','r') as f:
 	val_files=f.read().strip().split('\n')
 	val_files=[l.split(' ')[0] for l in val_files]
 	
-#make_hdf5(train_files, 'hdf5/train_data.h5', (176,176))
-make_hdf5(train_files, 'hdf5/train_data.h5')
+make_hdf5(train_files, 'hdf5/train_data.h5', (176,176))
+#make_hdf5(train_files, 'hdf5/train_data.h5')
 make_hdf5(val_files, 'hdf5/val_data.h5') # already 256x256
 raw_input('data creation successful')
 
