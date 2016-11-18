@@ -1,142 +1,26 @@
 name: "Colorization_v4"
 
-#---------------------Data layers------------------#
-layer { 
-  name: "hdf5_data" 
-  type: "HDF5Data"
-  top: "bw_sketch_data" #(1,256,256)
-  top: "col_sketch_data" #(3,256,256)
-  top: "col_reference_data" #(3,256,256)
-  include {    phase: TRAIN  }
-  hdf5_data_param {
-    source: "/work/04340/tushar_n/DL2/data/train.txt"
-    batch_size: 40
+#-------------------Input Layers--------------------#
+layer {
+  name: "data_l"
+  type: "Input"
+  top: "data_l"
+  input_param {
+    shape { dim: 1 dim: 1 dim: 224 dim: 224 }
   }
 }
 
+
 layer {
-  name: "hdf5_data"
-  type: "HDF5Data"
-  top: "bw_sketch_data"
-  top: "col_sketch_data"
+  name: "col_reference_data"
+  type: "Input"
   top: "col_reference_data"
-  include {    phase: TEST  }
-  hdf5_data_param {
-    source: "/work/04340/tushar_n/DL2/data/test.txt"
-    batch_size: 40
+  input_param {
+    shape { dim: 1 dim: 3 dim: 224 dim: 224 }
   }
 }
+
 #---------------------------------------------------#
-
-# ****************************
-# ***** Color Conversion *****
-# ****************************
-layer { # color conversion
-  type: 'Python'
-  name: 'img_lab'
-  bottom: "col_sketch_data"
-  top: "img_lab" # image in Lab space
-  python_param {
-    module: 'caffe_traininglayers'
-    layer: 'BGR2LabLayer'
-  }
-}
-
-layer {
-  name: "img_slice"
-  type: "Slice"
-  bottom: "img_lab"
-  top: "sketch_l" # [0,100]
-  top: "data_ab" # [-110,110]
-  propagate_down: false
-  slice_param {
-    axis: 1
-    slice_point: 1
-  }
-}
-
-# we don't care about sketch_l
-layer {
-  name: "silence_layer"
-  type: "Silence"
-  bottom: "sketch_l"
-}
-
-
-# take the bw sketch data and pretend it's the L channel
-layer { # 0-center data_l channel
-  name: "data_l_meansub"
-  type: "Scale"
-  bottom: "bw_sketch_data"
-  top: "data_l" # [-50,50]
-  propagate_down: false
-  param {lr_mult: 0 decay_mult: 0}
-  param {lr_mult: 0 decay_mult: 0}
-  scale_param {
-    bias_term: True
-    filler {      type: 'constant'      value: 1    }
-    bias_filler {      type: 'constant'      value: -50    }
-  }
-}
-
-# ****************************
-# ***** PROCESS LABELS *******
-# ****************************
-layer { # subsample ab
-  name: 'data_ab_ss'
-  type: 'Convolution'
-  bottom: "data_ab"
-  top: "data_ab_ss" # subsampled colors
-  param {lr_mult: 0 decay_mult: 0}
-  param {lr_mult: 0 decay_mult: 0}
-  convolution_param {
-    num_output: 2
-    kernel_size: 1
-    stride: 4
-    group: 2
-    weight_filler { type: 'constant' value: 1 }
-  }
-}
-layer { # encode
-  type: 'Python'
-  name: 'ab_enc'
-  bottom: "data_ab_ss"
-  top: "gt_ab_313" # quantized gt colors
-  python_param {
-    module: 'caffe_traininglayers'
-    layer: 'NNEncLayer'
-  }
-}
-layer { # compute gray mask
-  type: 'Python'
-  name: 'nongray_mask'
-  bottom: "data_ab_ss"
-  top: "nongray_mask" # mask out grayscale images
-  python_param {
-    module: 'caffe_traininglayers'
-    layer: 'NonGrayMaskLayer'
-  }
-}
-layer { # compute prior boost
-  type: 'Python'
-  name: 'prior_boost'
-  bottom: "gt_ab_313"
-  top: "prior_boost" # gradient boosting factors
-  python_param {
-    module: 'caffe_traininglayers'
-    layer: 'PriorBoostLayer'
-  }
-}
-layer { # multiply nongray mask and prior boost
-  type: 'Eltwise'
-  name: 'prior_boost_nongray'
-  bottom: "prior_boost"
-  bottom: "nongray_mask"
-  top: "prior_boost_nongray"
-  eltwise_param {
-    operation: 0
-  }
-}
 
 #--------------------Sketch Branch------------------#
 
@@ -1165,9 +1049,9 @@ layer {
 
 #---------------------------------------------------#
 
-# ****************************
-# ***** Unary prediction *****
-# ****************************
+# *******************
+# ***** Softmax *****
+# *******************
 layer {
   name: "conv8_313"
   type: "Convolution"
@@ -1180,28 +1064,39 @@ layer {
     dilation: 1
   }
 }
-# ***************************
-# ***** Boosting priors *****
-# ***************************
 layer {
-  name: "conv8_313_boost"
-  type: "Python"
+  name: "conv8_313_rh"
+  type: "Scale"
   bottom: "conv8_313"
-  bottom: "prior_boost_nongray"
-  top: "conv8_313_boost"
-  python_param {
-    module: 'caffe_traininglayers'
-    layer: 'ClassRebalanceMultLayer'
+  top: "conv8_313_rh"
+  scale_param {
+    bias_term: false
+    filler {      type: 'constant'      value: 2.606    }
   }
 }
-# ************************
-# ***** Softmax loss *****
-# ************************
 layer {
-  name: "loss8_313"
-  type: "SoftmaxCrossEntropyLoss"
-  bottom: "conv8_313_boost"
-  bottom: "gt_ab_313"
-  top: 'loss8_313'
-  loss_weight: 1.0
+  name: "class8_313_rh"
+  type: "Softmax"
+  bottom: "conv8_313_rh"
+  top: "class8_313_rh"
+}
+# ********************
+# ***** Decoding *****
+# ********************
+layer {
+  name: "class8_ab"
+  type: "Convolution"
+  bottom: "class8_313_rh"
+  top: "class8_ab"
+  convolution_param {
+    num_output: 2
+    kernel_size: 1
+    stride: 1
+    dilation: 1
+  }
+}
+layer {
+  name: "Silence"
+  type: "Silence"
+  bottom: "class8_ab"
 }

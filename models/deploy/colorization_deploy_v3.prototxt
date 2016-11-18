@@ -6,7 +6,7 @@ layer {
   type: "Input"
   top: "data_l"
   input_param {
-    shape { dim: 1 dim: 1 dim: 128 dim: 128 }
+    shape { dim: 1 dim: 1 dim: 224 dim: 224 }
   }
 }
 #---------------------------------------------------#
