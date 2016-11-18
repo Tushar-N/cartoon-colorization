@@ -2,12 +2,13 @@
 # N.B. set the path to the imagenet train + val data dirs
 set -e
 
-EXAMPLE=/work/04441/mkshah/cartoon-colorization/data/lmdb
-DATA=/work/04441/mkshah/data/raw
-TOOLS=/work/04441/mkshah/caffe/build/tools
+EXAMPLE=/work/04340/tushar_n/cartoon-colorization/data/lmdb
+DATA=/work/04340/tushar_n/cartoon-colorization/data/raw
+TOOLS=/work/04340/tushar_n/packages/caffe/build/tools
 
-TRAIN_DATA_ROOT=/work/04441/mkshah/cartoon-colorization/data/raw/frames/
-VAL_DATA_ROOT=/work/04441/mkshah/cartoon-colorization/data/raw/frames/
+FRAME_DATA_ROOT=/work/04340/tushar_n/cartoon-colorization/data/raw/frames/
+SKETCH_DATA_ROOT=/work/04340/tushar_n/cartoon-colorization/data/raw/sketch/
+REF_DATA_ROOT=/work/04340/tushar_n/cartoon-colorization/data/raw/reference/
 
 # Set RESIZE=true to resize the images to 256x256. Leave as false if images have
 # already been resized using another tool.
@@ -20,38 +21,36 @@ else
   RESIZE_WIDTH=0
 fi
 
-if [ ! -d "$TRAIN_DATA_ROOT" ]; then
-  echo "Error: TRAIN_DATA_ROOT is not a path to a directory: $TRAIN_DATA_ROOT"
-  echo "Set the TRAIN_DATA_ROOT variable in create_imagenet.sh to the path" \
-       "where the ImageNet training data is stored."
-  exit 1
-fi
+#echo "Creating train frame lmdb..."
+#GLOG_logtostderr=1 $TOOLS/convert_imageset \
+#    --resize_height=$RESIZE_HEIGHT \
+#    --resize_width=$RESIZE_WIDTH \
+#    $FRAME_DATA_ROOT \
+#    $DATA/ltrain.txt \
+#    $EXAMPLE/train_frames_lmdb
 
-if [ ! -d "$VAL_DATA_ROOT" ]; then
-  echo "Error: VAL_DATA_ROOT is not a path to a directory: $VAL_DATA_ROOT"
-  echo "Set the VAL_DATA_ROOT variable in create_imagenet.sh to the path" \
-       "where the ImageNet validation data is stored."
-  exit 1
-fi
+#echo "Creating val frame lmdb..."
+#GLOG_logtostderr=1 $TOOLS/convert_imageset \
+#    --resize_height=$RESIZE_HEIGHT \
+#    --resize_width=$RESIZE_WIDTH \
+#    $FRAME_DATA_ROOT \
+#    $DATA/lval.txt \
+#    $EXAMPLE/val_frames_lmdb
 
-echo "Creating train lmdb..."
+#echo "Creating train sketch lmdb..."
+#GLOG_logtostderr=1 $TOOLS/convert_imageset --gray\
+#    --resize_height=$RESIZE_HEIGHT \
+#    --resize_width=$RESIZE_WIDTH \
+#    $SKETCH_DATA_ROOT \
+#    $DATA/ltrain.txt \
+#    $EXAMPLE/train_sketch_lmdb
 
-GLOG_logtostderr=1 $TOOLS/convert_imageset \
+echo "Creating val sketch lmdb..."
+GLOG_logtostderr=1 $TOOLS/convert_imageset --gray\
     --resize_height=$RESIZE_HEIGHT \
     --resize_width=$RESIZE_WIDTH \
-    --shuffle \
-    $TRAIN_DATA_ROOT \
-    $DATA/ltrain.txt \
-    $EXAMPLE/train_frames_lmdb
-
-echo "Creating val lmdb..."
-
-echo GLOG_logtostderr=1 $TOOLS/convert_imageset \
-    --resize_height=$RESIZE_HEIGHT \
-    --resize_width=$RESIZE_WIDTH \
-    --shuffle \
-    $VAL_DATA_ROOT \
+    $SKETCH_DATA_ROOT \
     $DATA/lval.txt \
-    $EXAMPLE/val_frames_lmdb
+    $EXAMPLE/val_sketch_lmdb
 
 echo "Done."

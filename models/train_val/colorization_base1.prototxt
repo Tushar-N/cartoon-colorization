@@ -1,34 +1,59 @@
-name: "Colorization_v3"
+name: "Colorization_base1"
 
-#------------Train data layers---------------------#
-layer { 
-  name: "hdf5_data" 
-  type: "HDF5Data"
-  top: "bw_sketch_data" #(1,256,256)
-  top: "col_sketch_data" #(3,256,256)
-  include {    phase: TRAIN  }
-  hdf5_data_param {
-    source: "/work/04340/tushar_n/DL2/data/train.txt"
+
+#--------------------Data Layers----------------#
+layer {
+  name: "col_sketch_data"
+  type: "Data"
+  top: "col_sketch_data"
+  include { phase: TRAIN }
+  transform_param {
+   mirror: true
+   crop_size: 176
+  }
+  data_param {
+    source: "/work/04340/tushar_n/cartoon-colorization/data/lmdb/train_frames_lmdb"
     batch_size: 40
+    backend: LMDB
   }
 }
-
-#---------------------------------------------------#
 
 layer {
-  name: "hdf5_data"
-  type: "HDF5Data"
-  top: "bw_sketch_data"
+  name: "col_sketch_data"
+  type: "Data"
   top: "col_sketch_data"
-  include {    phase: TEST  }
-  hdf5_data_param {
-    source: "/work/04340/tushar_n/DL2/data/test.txt"
-    batch_size: 40
+  include { phase: TEST }
+  transform_param {
+   mirror: false
+   crop_size: 256
+  }
+  data_param {
+    source: "/work/04340/tushar_n/cartoon-colorization/data/lmdb/val_frames_lmdb"
+    batch_size: 10
+    backend: LMDB
   }
 }
 
-
-#---------------------------------------------------#
+#layer { 
+#  name: "hdf5_data" 
+#  type: "HDF5Data"
+#  top: "col_sketch_data"
+#  include {    phase: TRAIN  }
+#  hdf5_data_param {
+#    source: "/work/04340/tushar_n/cartoon-colorization/data/hdf5/train.txt"
+#    batch_size: 40
+#  }
+#}
+#layer {
+#  name: "hdf5_data"
+#  type: "HDF5Data"
+#  top: "col_sketch_data"
+#  include {    phase: TEST  }
+#  hdf5_data_param {
+#    source: "/work/04340/tushar_n/cartoon-colorization/data/hdf5/test.txt"
+#    batch_size: 40
+#  }
+#}
 
 # ****************************
 # ***** Color Conversion *****
@@ -43,12 +68,11 @@ layer { # color conversion
     layer: 'BGR2LabLayer'
   }
 }
-
 layer {
   name: "img_slice"
   type: "Slice"
   bottom: "img_lab"
-  top: "sketch_l" # [0,100]
+  top: "img_l" # [0,100]
   top: "data_ab" # [-110,110]
   propagate_down: false
   slice_param {
@@ -56,20 +80,10 @@ layer {
     slice_point: 1
   }
 }
-
-# we don't care about sketch_l
-layer {
-  name: "silence_layer"
-  type: "Silence"
-  bottom: "sketch_l"
-}
-
-
-# take the bw sketch data and pretend it's the L channel
 layer { # 0-center data_l channel
   name: "data_l_meansub"
   type: "Scale"
-  bottom: "bw_sketch_data"
+  bottom: "img_l"
   top: "data_l" # [-50,50]
   propagate_down: false
   param {lr_mult: 0 decay_mult: 0}
@@ -80,7 +94,6 @@ layer { # 0-center data_l channel
     bias_filler {      type: 'constant'      value: -50    }
   }
 }
-
 # ****************************
 # ***** PROCESS LABELS *******
 # ****************************
