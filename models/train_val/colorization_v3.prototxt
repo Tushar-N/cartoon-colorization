@@ -11,7 +11,7 @@ layer {
    crop_size: 176
   }
   data_param {
-    source: "/work/04340/tushar_n/cartoon-colorization/data/lmdb/train_frames_lmdb"
+    source: "data/lmdb/train_frames_lmdb"
     batch_size: 40
     backend: LMDB
   }
@@ -27,7 +27,7 @@ layer {
    crop_size: 256
   }
   data_param {
-    source: "/work/04340/tushar_n/cartoon-colorization/data/lmdb/val_frames_lmdb"
+    source: "data/lmdb/val_frames_lmdb"
     batch_size: 10
     backend: LMDB
   }
@@ -44,7 +44,7 @@ layer {
    crop_size: 176
   }
   data_param {
-    source: "/work/04340/tushar_n/cartoon-colorization/data/lmdb/train_sketch_lmdb"
+    source: "data/lmdb/train_sketch_lmdb"
     batch_size: 40
     backend: LMDB
   }
@@ -60,7 +60,7 @@ layer {
    crop_size: 256
   }
   data_param {
-    source: "/work/04340/tushar_n/cartoon-colorization/data/lmdb/val_sketch_lmdb"
+    source: "data/lmdb/val_sketch_lmdb"
     batch_size: 10
     backend: LMDB
   }
