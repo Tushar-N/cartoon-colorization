@@ -1,6 +1,7 @@
 name: "Colorization_v5"
 
 #-------------------Input Layers--------------------#
+
 layer {
   name: "data_l"
   type: "Input"
@@ -11,15 +12,15 @@ layer {
 }
 
 layer {
-  name: "col_reference_data"
+  name: "ref_lab"
   type: "Input"
-  top: "col_reference_data"
+  top: "ref_lab"
   input_param {
     shape { dim: 1 dim: 3 dim: 224 dim: 224 }
   }
 }
-#--------------------Sketch Branch------------------#
 
+#--------------------Sketch Branch------------------#
 
 # *****************
 # ***** conv1 *****
@@ -197,7 +198,7 @@ layer {
 layer {
   name: "ref_bw_conv1_1"
   type: "Convolution"
-  bottom: "col_reference_data"
+  bottom: "ref_lab"
   top: "ref_conv1_1"
   convolution_param {
     num_output: 64
