@@ -47,6 +47,7 @@ except:
 
 length = len([name for name in os.listdir(opt.sketch) if os.path.isfile(os.path.join(opt.sketch, name))])
 
+total_loss=0.0
 with tqdm(total = length) as pbar:
 	for file in os.listdir(opt.sketch):
 		if file.endswith(".png"):
@@ -70,6 +71,11 @@ with tqdm(total = length) as pbar:
 			ab_dec = net.blobs['class8_ab'].data[0,:,:,:].transpose((1,2,0))
 			ab_dec_us = sni.zoom(ab_dec,(1.*H_orig/H_out,1.*W_orig/W_out,1))
 
+			# add loss from A/B channels only (before upsampling)
+			sketch_ab_rs=sketch_lab_rs[:,:,1:].flatten() # AB channels
+			pred_ab= ab_dec.flatten()
+			loss+= np.linalg.norm(sketch_ab_rs-pred_ab)
+
 			# concatenate with original image L, and convert to RGB
 			img_lab_out = np.concatenate((sketch_l,ab_dec_us),axis=2) 
 			img_rgb_out = np.clip(color.lab2rgb(img_lab_out),0,1) 
@@ -78,6 +84,9 @@ with tqdm(total = length) as pbar:
 			plt.axis('off');
 			plt.savefig(os.path.join(opt.save,file))
 			pbar.update(1)
+
+average_loss= total_loss/length
+print 'average loss = %f'%average_loss
 
 pbar.close()
 raw_input('Success')
