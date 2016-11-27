@@ -3,10 +3,10 @@ import skimage.transform
 import skimage.color as color
 import scipy.ndimage.interpolation as sni
 import os
-
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 plt.rcParams['figure.figsize'] = (12, 6)
 
 import sys
@@ -45,34 +45,39 @@ try: # only push the reference if it exists
 except:
 	print 'cannot find layer'
 
-for file in os.listdir(opt.sketch):
-	if file.endswith(".png"):
-		testing_file = os.path.join(opt.sketch,file)
+length = len([name for name in os.listdir(opt.sketch) if os.path.isfile(os.path.join(opt.sketch, name))])
 
-		# Get sketch information
-		sketch_rgb = caffe.io.load_image(testing_file)
-		sketch_lab = color.rgb2lab(sketch_rgb)
-		sketch_l = sketch_lab[:,:,0,np.newaxis] # pull out L channel
-		(H_orig,W_orig) = sketch_rgb.shape[:2] # original image size
+with tqdm(total = length) as pbar:
+	for file in os.listdir(opt.sketch):
+		if file.endswith(".png"):
+			testing_file = os.path.join(opt.sketch,file)
 
-		sketch_rs = caffe.io.resize_image(sketch_rgb,(H_in,W_in))
-		sketch_lab_rs = color.rgb2lab(sketch_rs)
-		sketch_l_rs = sketch_lab_rs[:,:,0]
-		sketch_l_rs = sketch_l_rs - 50
-		net.blobs['data_l'].data[0,0,:,:] = sketch_l_rs
+			# Get sketch information
+			sketch_rgb = caffe.io.load_image(testing_file)
+			sketch_lab = color.rgb2lab(sketch_rgb)
+			sketch_l = sketch_lab[:,:,0,np.newaxis] # pull out L channel
+			(H_orig,W_orig) = sketch_rgb.shape[:2] # original image size
 
-		net.forward() # run network
+			sketch_rs = caffe.io.resize_image(sketch_rgb,(H_in,W_in))
+			sketch_lab_rs = color.rgb2lab(sketch_rs)
+			sketch_l_rs = sketch_lab_rs[:,:,0]
+			sketch_l_rs = sketch_l_rs - 50
+			net.blobs['data_l'].data[0,0,:,:] = sketch_l_rs
 
-		# retrieve output and upsample
-		ab_dec = net.blobs['class8_ab'].data[0,:,:,:].transpose((1,2,0))
-		ab_dec_us = sni.zoom(ab_dec,(1.*H_orig/H_out,1.*W_orig/W_out,1))
+			net.forward() # run network
 
-		# concatenate with original image L, and convert to RGB
-		img_lab_out = np.concatenate((sketch_l,ab_dec_us),axis=2) 
-		img_rgb_out = np.clip(color.lab2rgb(img_lab_out),0,1) 
+			# retrieve output and upsample
+			ab_dec = net.blobs['class8_ab'].data[0,:,:,:].transpose((1,2,0))
+			ab_dec_us = sni.zoom(ab_dec,(1.*H_orig/H_out,1.*W_orig/W_out,1))
 
-		plt.imshow(img_rgb_out);
-		plt.axis('off');
-		plt.savefig(os.path.join(opt.save,file))
+			# concatenate with original image L, and convert to RGB
+			img_lab_out = np.concatenate((sketch_l,ab_dec_us),axis=2) 
+			img_rgb_out = np.clip(color.lab2rgb(img_lab_out),0,1) 
 
+			plt.imshow(img_rgb_out);
+			plt.axis('off');
+			plt.savefig(os.path.join(opt.save,file))
+			pbar.update(1)
+
+pbar.close()
 raw_input('Success')
